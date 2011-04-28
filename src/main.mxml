@@ -28,6 +28,7 @@
 			{
 				player.login(username.text, password.text, true);
 				this.currentState = "main";
+				welcome_lbl.text = "Welcome " + player.username;
 				nativeWindow.y = 0;
 				nativeWindow.x = Screen.mainScreen.bounds.width - 400;
 			}
@@ -49,4 +50,5 @@
 	<s:Label x="12" y="47" text="Password:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="41" id="password" width="250" enabled="true" textAlign="left" includeIn="login" displayAsPassword="true"/>
 	<s:Button x="150" y="71" label="Log in" id="login_btn" enabled="true" click="login_btn_clickHandler(event)" includeIn="login"/>
+	<s:Label includeIn="main" x="10" y="10" text="Welcome" width="380" color="#FFFFFF" id="welcome_lbl"/>
 </s:WindowedApplication>
