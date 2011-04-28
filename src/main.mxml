@@ -6,9 +6,27 @@
 					   preloaderChromeColor="#FFFFFF" 
 					   width.main="764" height.main="534" 
 					   height.login="162" width.login="360" 
-					   creationComplete="init()" currentStateChange.main="windowedapplication1_currentStateChangeHandler(event)">
+					   creationComplete="init()" currentStateChange.main="windowedapplication1_currentStateChangeHandler(event)" viewSourceURL="srcview/index.html">
 	<fx:Script>
 		<![CDATA[
+			/**
+			 * subsonic desktop client
+			 *
+			 * Copyright (c) 2011 Juan Carlos del Valle (imekinox.com) <jc.ekinox@gmail.com>
+			 * This program is free software: you can redistribute it and/or modify
+			 * it under the terms of the GNU General Public License as published by
+			 * the Free Software Foundation, either version 3 of the License, or
+			 * (at your option) any later version.
+			 *
+			 * This program is distributed in the hope that it will be useful,
+			 * but WITHOUT ANY WARRANTY; without even the implied warranty of
+			 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+			 * GNU General Public License for more details.
+			 *
+			 * @license http://www.gnu.org/licenses/gpl.html
+			 * @project subsonic.player
+			 */
+			
 			import mx.collections.*;
 			import mx.events.FlexEvent;
 			import mx.events.ListEvent;
@@ -20,14 +38,20 @@
 			private var updater:Timer;
 			private var tick:Timer;
 			private var playing:Boolean = false;
+			/*
+				Constructor
+			*/
 			private function init():void { 
 				center_window();
+				
+				//Initializing subsonic player and timers
 				player = new subsonic_player();
 				updater = new Timer(30000); // 30 seconds
 				updater.addEventListener(TimerEvent.TIMER, update);
 				tick = new Timer(250);
 				tick.addEventListener(TimerEvent.TIMER, ticking);
 				
+				//Fill in stored credentials
 				if(player.username){
 					username.text = player.username;
 					password.text = player.password;
@@ -35,80 +59,189 @@
 				}
 			}
 			
+			/*
+			* center_window method 
+			* Used to center the window in the screen
+			*/
 			protected function center_window():void{
 				nativeWindow.x = (Screen.mainScreen.bounds.width - this.width) / 2; 
 				nativeWindow.y = (Screen.mainScreen.bounds.height - this.height) / 2;
 			}
-			
+
+			/*
+			* login_btn_clickHandler handler 
+			* Called when the user click the login button
+			*
+			* @param event MouseEvent Object
+			*/
 			protected function login_btn_clickHandler(event:MouseEvent):void
 			{
 				player.login(server.text, username.text, password.text, true, loged_in);
 			}
 			
+			/*
+			* loged_in callback 
+			* Called when credentials are verified
+			*
+			* @param obj Object with the user access information
+			*
+			* @see login
+			*/
 			private function loged_in(obj:Object):void {
+				//switch UI
 				this.currentState = "main";
 				play_btn.enabled = false;
+				
+				//Check if user is admin
 				var is_admin:Boolean = obj.data["subsonic-response"].user.adminRole;
 				welcome_lbl.text = "Welcome " + player.username + ((is_admin)?" (admin)":"");
+				
+				//Load artists and now playing info
 				player.getUsers(users_update);
 				player.getArtists(artists_update);
+				
+				//Start 30sec timer to update playing info
 				updater.start();
 			}
 			
+			/*
+			* timer callback 
+			* Called every 30 secs
+			*
+			* @param event TimerEvent Object
+			*
+			* @see loged_in
+			*/
 			private function update(event:TimerEvent):void {
 				player.getUsers(users_update);
 			}
 			
-			private function artists_update(xml:XML):void{
-				artists.dataProvider = new XMLListCollection(xml.children().children());
-			}
-			
+			/*
+			* users_update callback 
+			* Called when nowPlaying info is ready
+			*
+			* @param arr Array with the user name and song playing 
+			*
+			* @see update
+			*/
 			private function users_update(arr:Array):void {
 				userlist.dataProvider = new ArrayCollection(arr);
 			}
 			
+			/*
+			* artists_update callback 
+			* Called when artists info is ready
+			*
+			* @param xml XML with the indexed artists from subsonic 
+			*
+			* @see loged_in
+			*/
+			private function artists_update(xml:XML):void{
+				artists.dataProvider = new XMLListCollection(xml.children().children());
+			}
+			
+			/*
+			* treeLabel callback 
+			* Used by Tree component to determine label string rendered
+			*
+			* @param item Object object of the row of Tree Component 
+			*/
 			private function treeLabel(item:Object):String {
 				var node:XML = XML(item);
 				return node.@name;
 			}
-
+			
+			/*
+			* artists_changeHandler handler 
+			* Called when you select an item from the Tree Component
+			*
+			* @param event ListEvent object 
+			*/
 			protected function artists_changeHandler(event:ListEvent):void
 			{
+				//reset albums and songs display
 				albums.dataProvider = null;
 				songs.dataProvider = null;
+				//load albums of selected artist
 				player.getAlbums(event.currentTarget.selectedItem.@id, albums_update);
 			}
 			
+			/*
+			* albums_update callback 
+			* Called when albums info is available
+			*
+			* @param arr Array with the albums id and title 
+			*/
 			private function albums_update(arr:Array):void{
+				//fill in albums component
 				albums.dataProvider = new ArrayCollection(arr);
 			}
 
+			/*
+			* albums_changeHandler handler 
+			* Called when any album is selected
+			*
+			* @param event ListEvent Object 
+			*/
 			protected function albums_changeHandler(event:ListEvent):void
 			{
+				//empty songs component
 				songs.dataProvider = null;
+				//load songs from the selected album
 				player.getSongs(event.currentTarget.dataProvider[event.rowIndex].id, songs_update);
 			}
 			
+			/*
+			* songs_update callback 
+			* Called when songs info is available
+			*
+			* @param arr Array with song id and title 
+			*/
 			private function songs_update(arr:Array):void{
 				songs.dataProvider = new ArrayCollection(arr);
 			}
-
+			
+			/*
+			* windowedapplication1_currentStateChangeHandler handler 
+			* Called when the applications change from state
+			*
+			* @param event StateChangeEvent Object 
+			*/
 			protected function windowedapplication1_currentStateChangeHandler(event:StateChangeEvent):void
-			{
+			{	
+				//Re-center window with new state dimensions
 				center_window();
 			}
 
+			/*
+			* songs_changeHandler handler 
+			* Called when the user selects a song from the song list
+			*
+			* @param event ListEvent Object 
+			*/
 			protected function songs_changeHandler(event:ListEvent):void
 			{
+				//Play selected song
 				player.playSong(event.currentTarget.dataProvider[event.rowIndex].id);
+				//enable pause actions
 				play_btn.enabled = true;
 				play_btn.label = "||";
 				playing = true;
+				//Start UI updater (this is 250ms)
 				tick.start();
 			}
 			
+			/*
+			* ticking callback 
+			* Called every 250ms after first playback
+			*
+			* @param event TimerEvent Object 
+			*/
 			private function ticking(event:TimerEvent):void {
+				//Change progress bar state
 				playback.setProgress(player.status.time,player.status.duration);
+				
+				//Calculate and set playing / duration display
 				var m1:* = Math.floor((player.status.time / 1000) / 60);
 				m1 = (m1 < 10)?"0" + m1: m1;
 				var s1:* = Math.floor((player.status.time / 1000) - m1 * 60);
@@ -120,14 +253,21 @@
 				time.text = m1 + ":" + s1 + " / " + m2 + ":" + s2;
 			}
 
-
+			/*
+			* play_btn_clickHandler handler 
+			* Called when play/pause button is pressed
+			*
+			* @param event MouseEvent Object 
+			*/
 			protected function play_btn_clickHandler(event:MouseEvent):void
 			{
 				if(playing) {
+					//Pause stream
 					player.pause();	
 					play_btn.label = ">";
 					playing = false;
 				} else {
+					//Resume stream
 					player.play();
 					play_btn.label = "||";
 					playing = true;
