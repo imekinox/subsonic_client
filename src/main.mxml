@@ -1,16 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
 					   xmlns:s="library://ns.adobe.com/flex/spark" 
-					   xmlns:mx="library://ns.adobe.com/flex/mx" width="360" height="100" backgroundColor="#000000" preloaderChromeColor="#FFFFFF" width.main="400" height.main="500" height.login="162" width.login="360" creationComplete="init()">
+					   xmlns:mx="library://ns.adobe.com/flex/mx" 
+					   width="360" height="162" backgroundColor="#DADADA" 
+					   preloaderChromeColor="#FFFFFF" 
+					   width.main="764" height.main="534" 
+					   height.login="162" width.login="360" 
+					   creationComplete="init()" currentStateChange.main="windowedapplication1_currentStateChangeHandler(event)">
 	<fx:Script>
 		<![CDATA[
-			import subsonic_player;
+			import mx.collections.*;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.events.StateChangeEvent;
+			
+			import org.subsonic_player;
 			
 			private var player:subsonic_player;
-			
+			private var updater:Timer;
+			private var tick:Timer;
+			private var playing:Boolean = false;
 			private function init():void { 
 				center_window();
 				player = new subsonic_player();
+				updater = new Timer(30000); // 30 seconds
+				updater.addEventListener(TimerEvent.TIMER, update);
+				tick = new Timer(250);
+				tick.addEventListener(TimerEvent.TIMER, ticking);
 				
 				if(player.username){
 					username.text = player.username;
@@ -20,8 +36,8 @@
 			}
 			
 			protected function center_window():void{
-				nativeWindow.x = (Screen.mainScreen.bounds.width - nativeWindow.width) / 2; 
-				nativeWindow.y = (Screen.mainScreen.bounds.height - nativeWindow.height) / 2;
+				nativeWindow.x = (Screen.mainScreen.bounds.width - this.width) / 2; 
+				nativeWindow.y = (Screen.mainScreen.bounds.height - this.height) / 2;
 			}
 			
 			protected function login_btn_clickHandler(event:MouseEvent):void
@@ -31,11 +47,93 @@
 			
 			private function loged_in(obj:Object):void {
 				this.currentState = "main";
+				play_btn.enabled = false;
 				var is_admin:Boolean = obj.data["subsonic-response"].user.adminRole;
 				welcome_lbl.text = "Welcome " + player.username + ((is_admin)?" (admin)":"");
-				nativeWindow.y = 0;
-				nativeWindow.x = Screen.mainScreen.bounds.width - 400;
+				player.getUsers(users_update);
+				player.getArtists(artists_update);
+				updater.start();
 			}
+			
+			private function update(event:TimerEvent):void {
+				player.getUsers(users_update);
+			}
+			
+			private function artists_update(xml:XML):void{
+				artists.dataProvider = new XMLListCollection(xml.children().children());
+			}
+			
+			private function users_update(arr:Array):void {
+				userlist.dataProvider = new ArrayCollection(arr);
+			}
+			
+			private function treeLabel(item:Object):String {
+				var node:XML = XML(item);
+				return node.@name;
+			}
+
+			protected function artists_changeHandler(event:ListEvent):void
+			{
+				albums.dataProvider = null;
+				songs.dataProvider = null;
+				player.getAlbums(event.currentTarget.selectedItem.@id, albums_update);
+			}
+			
+			private function albums_update(arr:Array):void{
+				albums.dataProvider = new ArrayCollection(arr);
+			}
+
+			protected function albums_changeHandler(event:ListEvent):void
+			{
+				songs.dataProvider = null;
+				player.getSongs(event.currentTarget.dataProvider[event.rowIndex].id, songs_update);
+			}
+			
+			private function songs_update(arr:Array):void{
+				songs.dataProvider = new ArrayCollection(arr);
+			}
+
+			protected function windowedapplication1_currentStateChangeHandler(event:StateChangeEvent):void
+			{
+				center_window();
+			}
+
+			protected function songs_changeHandler(event:ListEvent):void
+			{
+				player.playSong(event.currentTarget.dataProvider[event.rowIndex].id);
+				play_btn.enabled = true;
+				play_btn.label = "||";
+				playing = true;
+				tick.start();
+			}
+			
+			private function ticking(event:TimerEvent):void {
+				playback.setProgress(player.status.time,player.status.duration);
+				var m1:* = Math.floor((player.status.time / 1000) / 60);
+				m1 = (m1 < 10)?"0" + m1: m1;
+				var s1:* = Math.floor((player.status.time / 1000) - m1 * 60);
+				s1 = (s1 < 10)?"0" + s1: s1;
+				var m2:* = Math.floor((player.status.duration / 1000) / 60);
+				m2 = (m2 < 10)?"0" + m2: m2;
+				var s2:* = Math.floor((player.status.duration / 1000) - m2 * 60);
+				s2 = (s2 < 10)?"0" + s2: s2;
+				time.text = m1 + ":" + s1 + " / " + m2 + ":" + s2;
+			}
+
+
+			protected function play_btn_clickHandler(event:MouseEvent):void
+			{
+				if(playing) {
+					player.pause();	
+					play_btn.label = ">";
+					playing = false;
+				} else {
+					player.play();
+					play_btn.label = "||";
+					playing = true;
+				} 
+			}
+
 		]]>
 	</fx:Script>
 
@@ -49,12 +147,34 @@
 	<s:layout.main>
 		<s:BasicLayout/>
 	</s:layout.main>
-	<s:Label x="12" y="15" text="Username:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
+	<s:Label x="12" y="15" text="Username:" color="#000000" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="10" id="username" width="250" enabled="true" textAlign="left" includeIn="login"/>
-	<s:Label x="12" y="47" text="Password:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
+	<s:Label x="12" y="47" text="Password:" color="#000000" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="41" id="password" width="250" enabled="true" textAlign="left" includeIn="login" displayAsPassword="true"/>
-	<s:Label x="12" y="78" text="Server:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
+	<s:Label x="12" y="78" text="Server:" color="#000000" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="72" id="server" width="250" enabled="true" textAlign="left" displayAsPassword="false" includeIn="login"/>
 	<s:Button x="145" y="102" label="Log in" id="login_btn" enabled="true" click="login_btn_clickHandler(event)" includeIn="login"/>
-	<s:Label includeIn="main" x="10" y="10" text="Welcome" width="380" color="#FFFFFF" id="welcome_lbl"/>
+	<s:Label includeIn="main" x="10" y="10" text="Welcome" width="147" color="#000000" id="welcome_lbl"/>
+	<mx:DataGrid includeIn="main" y="30" height="103" id="userlist" left="8" width="385">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Username" dataField="username" width="100"/>
+			<mx:DataGridColumn headerText="Listening" dataField="listening"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:Tree includeIn="main" id="artists" labelFunction="treeLabel" change="artists_changeHandler(event)" bottom="44" width="380" x="10" top="141"></mx:Tree>
+	<mx:DataGrid includeIn="main" y="30" id="albums" height="207" change="albums_changeHandler(event)" left="398" right="10">
+		<mx:columns>
+			<mx:DataGridColumn headerText="id" visible="false" dataField="id"/>
+			<mx:DataGridColumn headerText="Albums" dataField="album"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:DataGrid id="songs" includeIn="main" change="songs_changeHandler(event)" left="398" right="10" bottom="44" top="245">
+		<mx:columns>
+			<mx:DataGridColumn dataField="id" headerText="id" visible="false"/>
+			<mx:DataGridColumn headerText="Songs" dataField="song"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:ProgressBar includeIn="main" y="10" height="12" labelPlacement="bottom" label=" " id="playback" maximum="1" minimum="0" indeterminate="false" enabled="true" mode="manual" left="434" right="93"/>
+	<s:Button includeIn="main" x="398" y="4" label="&gt;" width="28" id="play_btn" click="play_btn_clickHandler(event)"/>
+	<s:Label includeIn="main" y="10" text="00:00 / 00:00" right="14" id="time"/>
 </s:WindowedApplication>

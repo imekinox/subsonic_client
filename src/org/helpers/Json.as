@@ -15,7 +15,7 @@ package org.helpers
 				var obj:Object = new Object;
 				obj.id = id;
 		        try {
-					obj.data = JSON.decode(event.target.data);
+					obj.data = JSON.decode(event.target.data.replace("&#146;","\'"));
 					callback(obj);
 		        } catch(e:Error){
 		        	trace("Json ERROR!:"+e.message);

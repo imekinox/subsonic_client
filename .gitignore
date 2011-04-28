@@ -2,4 +2,4 @@ bin-debug
 .settings
 .actionScriptProperties
 .flexProperties
-
+.DS_Store
