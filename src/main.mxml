@@ -11,6 +11,7 @@
 			private function init():void { 
 				center_window();
 				player = new subsonic_player();
+				
 				if(player.username){
 					username.text = player.username;
 					password.text = player.password;
@@ -46,6 +47,6 @@
 	<s:Label x="12" y="15" text="Username:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="10" id="username" width="250" enabled="true" textAlign="left" includeIn="login"/>
 	<s:Label x="12" y="47" text="Password:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
-	<s:TextInput x="92" y="41" id="password" width="250" enabled="true" textAlign="left" includeIn="login"/>
+	<s:TextInput x="92" y="41" id="password" width="250" enabled="true" textAlign="left" includeIn="login" displayAsPassword="true"/>
 	<s:Button x="150" y="71" label="Log in" id="login_btn" enabled="true" click="login_btn_clickHandler(event)" includeIn="login"/>
 </s:WindowedApplication>
