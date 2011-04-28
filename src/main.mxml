@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx" width="360" height="100" backgroundColor="#000000" preloaderChromeColor="#FFFFFF" width.main="400" height.main="500" height.login="124" width.login="360" creationComplete="init()">
+	<fx:Script>
+		<![CDATA[
+			import subsonic_player;
+			
+			private var player:subsonic_player;
+			
+			private function init():void { 
+				center_window();
+				player = new subsonic_player();
+				if(player.username){
+					username.text = player.username;
+					password.text = player.password;
+					trace("from storage");
+				}
+			}
+			
+			protected function center_window():void{
+				nativeWindow.x = (Screen.mainScreen.bounds.width - nativeWindow.width) / 2; 
+				nativeWindow.y = (Screen.mainScreen.bounds.height - nativeWindow.height) / 2;
+			}
+			
+			protected function login_btn_clickHandler(event:MouseEvent):void
+			{
+				player.login(username.text, password.text, true);
+				this.currentState = "main";
+				nativeWindow.y = 0;
+				nativeWindow.x = Screen.mainScreen.bounds.width - 400;
+			}
+		]]>
+	</fx:Script>
+
+	<s:states>
+		<s:State name="login"/>
+		<s:State name="main"/>
+	</s:states>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:layout.main>
+		<s:BasicLayout/>
+	</s:layout.main>
+	<s:Label x="12" y="15" text="Username:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
+	<s:TextInput x="92" y="10" id="username" width="250" enabled="true" textAlign="left" includeIn="login"/>
+	<s:Label x="12" y="47" text="Password:" color="#FFFFFF" textAlign="right" width="70" includeIn="login"/>
+	<s:TextInput x="92" y="41" id="password" width="250" enabled="true" textAlign="left" includeIn="login"/>
+	<s:Button x="150" y="71" label="Log in" id="login_btn" enabled="true" click="login_btn_clickHandler(event)" includeIn="login"/>
+</s:WindowedApplication>
