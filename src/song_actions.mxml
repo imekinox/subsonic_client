@@ -8,12 +8,14 @@
 		<![CDATA[
 			import mx.collections.ArrayCollection;
 			
+			import org.playlist;
 			import org.subsonic_player;
+			
 			protected function add_clickHandler(event:MouseEvent):void
 			{
 				var data:ArrayCollection = this.parentApplication.songs.dataProvider;
 				var player:subsonic_player = this.parentApplication.player;
-				trace(data[this.itemIndex].id);
+				player.currPlaylist.addSong(data[this.itemIndex]);
 			}
 		]]>
 	</fx:Script>

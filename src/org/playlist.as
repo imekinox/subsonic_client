@@ -19,24 +19,26 @@ package org
 			songs = new Array();
 		}
 		
-		public function createFromId(_id:String, callback:Function):void {
-			player.getPlaylist(_id, function(arr:Array, _name:String):void {
-				id = _id;
-				name = _name;
-				type = "remote";
-				songs = arr;
-				callback(arr);
+		public function createFromId(id:String, callback:Function = null):void {
+			this.id = id;
+			var _this:playlist = this;
+			player.getPlaylist(id, function(arr:Array, name:String):void {
+				_this.name = name;
+				_this.type = "remote";
+				_this.songs = arr;
+				player.currPlaylist = _this; //Update stored reference
+				if(callback != null) callback(arr);
 			});
 		}
 		
-		public function addSong(id:String, name:String):void {
-			songs.push({id:id, name:name});
+		public function addSong(song:Object):void {
+			songs.push({id:song.id, name:song.song});
 			switch(this.type){
 				case "local":
 					player.currPlaylist = this;
 					break;
 				case "remote":
-					player.addSong(id, this.id);
+					player.addSong(song.id, this.id);
 					break;
 			}
 		}
@@ -47,10 +49,6 @@ package org
 				if(songs[i].id == id) index = i;	
 			}
 			if(index != -1) songs.splice(index, 1);
-		}
-		
-		public function save():void {
-
 		}
 	}
 }

@@ -14,6 +14,7 @@
 			import mx.events.ListEvent;
 			import mx.events.StateChangeEvent;
 			
+			import org.events.subsonicEvent;
 			import org.playlist;
 			import org.subsonic_player;
 			
@@ -31,6 +32,7 @@
 				
 				//Initializing subsonic player and timers
 				player = new subsonic_player();
+				player.addEventListener(subsonicEvent.CHANGED, song_changed);
 				updater = new Timer(30000); // 30 seconds
 				updater.addEventListener(TimerEvent.TIMER, update);
 				tick = new Timer(250);
@@ -70,7 +72,7 @@
 			*
 			* @param obj Object with the user access information
 			*
-			* @see login
+			* @see login_btn_clickHandler
 			*/
 			private function loged_in(obj:Object):void {
 				//switch UI
@@ -273,7 +275,16 @@
 				if(this.currentState == "playlist"){
 					player.getPlaylists(playlists_loaded);
 					if(player.currPlaylist) playlist_data.dataProvider = new ArrayCollection(player.currPlaylist.songs);
+					if(player.playing) song_changed({data:{id:player.playing}});
 				}
+			}
+			
+			private function song_changed(obj:Object):void {
+				if(playlist_data){
+					for(var i:int = 0, max:int = playlist_data.dataProvider.length; i < max; i++){
+						if(playlist_data.dataProvider[i].id == obj.data.id) playlist_data.selectedIndex = i;
+					}
+				}				
 			}
 			
 			private function playlists_loaded(arr:Array):void {
@@ -297,6 +308,19 @@
 			
 			private function playlist_loaded(arr:Array):void {
 				playlist_data.dataProvider = new ArrayCollection(arr);
+			}
+
+
+			protected function playlist_data_changeHandler(event:ListEvent):void
+			{
+				//Play selected song
+				player.playFrom(event.currentTarget.dataProvider[event.rowIndex].id);
+				//enable pause actions
+				play_btn.enabled = true;
+				play_btn.label = "||";
+				playing = true;
+				//Start UI updater (this is 250ms)
+				tick.start();
 			}
 
 		]]>
@@ -355,7 +379,7 @@
 	<s:Button includeIn="playlist" y="45" label="Save" right="11"/>
 	<s:Label includeIn="playlist" y="51" text="Playlists:" right="205"/>
 	<mx:HRule includeIn="main,playlist" x="10" y="35" width="744"/>
-	<mx:DataGrid includeIn="playlist" id="playlist_data" left="10" right="10" bottom="10" top="74">
+	<mx:DataGrid includeIn="playlist" id="playlist_data" left="10" right="10" bottom="10" top="74" change="playlist_data_changeHandler(event)">
 		<mx:columns>
 			<mx:DataGridColumn headerText="id" dataField="id" visible="false"/>
 			<mx:DataGridColumn headerText="Artist" dataField="artist" width="150"/>

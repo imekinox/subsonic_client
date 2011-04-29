@@ -18,24 +18,27 @@
 
 package org
 {
-	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.EventDispatcher;
 	import flash.media.Sound;
 	import flash.media.SoundChannel;
 	import flash.media.SoundLoaderContext;
 	import flash.net.SharedObject;
 	import flash.net.URLRequest;
 	
+	import org.events.subsonicEvent;
 	import org.helpers.Json;
 	import org.helpers.XMLH;
+
 	/*
 		subsonic player class
 	*/
-	public class subsonic_player extends Sprite
+	public class subsonic_player extends EventDispatcher
 	{
 		public var username:String;
 		public var password:String;
 		public var server:String;
+		public var playing:String = null;
 		public var so:SharedObject = SharedObject.getLocal("subsonic_data");
 		
 		private var client_id:String = "subsonic_player";
@@ -43,6 +46,9 @@ package org
 		private var context:SoundLoaderContext;
 		private var sc:SoundChannel;
 		private var lastPosition:int = 0;
+		private var currPlaying:int = 0;
+		
+		private var current_playlist:playlist;
 		
 		/*
 			Constructor
@@ -68,7 +74,15 @@ package org
 		private function ping_done(obj:Object, callback:Function):void {
 			if(obj.data["subsonic-response"].status == "ok"){
 				var user_url:String = "http://"+this.server+"/rest/getUser.view?v=1.5.0&c="+this.client_id+"&f=json&username="+this.username;
-				Json.load(user_url, callback);
+				current_playlist = new playlist(this);
+				if(so.data.currPlaylist) {
+					current_playlist.createFromId(so.data.currPlaylist,function(arr:Array):void {
+						Json.load(user_url, callback);
+					});
+				} else {
+					current_playlist.create("temp");
+					Json.load(user_url, callback);
+				}
 			}
 		}
 		
@@ -209,13 +223,13 @@ package org
 			var playlists_url:String = "http://"+this.server+"/rest/getPlaylists.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&f=json";
 			Json.load(playlists_url,function(obj:Object):void {
 				var tmp:Array = new Array();
-				if(obj.data["subsonic-response"].playlists.length == undefined){
+				if(obj.data["subsonic-response"].playlists.playlist.length == undefined){
 					tmp[0] = {
 						label: obj.data["subsonic-response"].playlists.playlist.name,
 						data:obj.data["subsonic-response"].playlists.playlist.id
 					};
 				} else {
-					for(var i:int = 0, max:int = obj.data["subsonic-response"].playlists.length; i < max; i++){
+					for(var i:int = 0, max:int = obj.data["subsonic-response"].playlists.playlist.length; i < max; i++){
 						tmp[i] = {
 								label: obj.data["subsonic-response"].playlists.playlist[i].name,
 								data:obj.data["subsonic-response"].playlists.playlist[i].id
@@ -278,8 +292,24 @@ package org
 			s.addEventListener(Event.OPEN, sound_loaded);
 			s.addEventListener(Event.COMPLETE, sound_complete);
 			s.load(new URLRequest(song_url), context);
+			this.playing = id;
+			dispatchEvent(new subsonicEvent(subsonicEvent.CHANGED, {id:id}));
 		}
 
+		public function playFrom(id:String):void {
+			for(var i:int, max:int = currPlaylist.songs.length; i < max; i++){
+				if(currPlaylist.songs[i].id == id) currPlaying = i;
+			}
+			playSong(id);
+		}
+		
+		public function song_ended(e:Event):void {
+			currPlaying++;
+			if(currPlaying < currPlaylist.songs.length){
+				playSong(currPlaylist.songs[currPlaying].id);
+			}
+		}
+		
 		/*
 		* sound_loaded callback 
 		* After the sound has connected successfully we play the stream
@@ -288,7 +318,8 @@ package org
 		*
 		*/
 		private function sound_loaded(e:Event):void {
-			sc = s.play();	
+			sc = s.play();
+			sc.addEventListener(Event.SOUND_COMPLETE, song_ended);
 			s.removeEventListener(Event.OPEN, sound_loaded);
 		}
 		
@@ -322,12 +353,13 @@ package org
 			return tmp;
 		}
 		
-		public function get currPlaylist():Object {
-			return so.data.currPlaylist || null; 
+		public function get currPlaylist():playlist {
+			return current_playlist; 
 		}
 		
-		public function set currPlaylist(obj:Object):void {
-			so.data.currPlaylist = obj; 
+		public function set currPlaylist(obj:playlist):void {
+			so.data.currPlaylist = obj.id;
+			current_playlist = obj;
 		}
 		
 		/*
