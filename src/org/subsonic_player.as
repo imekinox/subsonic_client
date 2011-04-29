@@ -18,16 +18,13 @@
 
 package org
 {
-	import flash.net.SharedObject;
-	import flash.net.URLRequest;
-	
 	import flash.display.Sprite;
-	
 	import flash.events.Event;
-	
 	import flash.media.Sound;
 	import flash.media.SoundChannel;
 	import flash.media.SoundLoaderContext;
+	import flash.net.SharedObject;
+	import flash.net.URLRequest;
 	
 	import org.helpers.Json;
 	import org.helpers.XMLH;
@@ -39,12 +36,13 @@ package org
 		public var username:String;
 		public var password:String;
 		public var server:String;
+		public var so:SharedObject = SharedObject.getLocal("subsonic_data");
+		
 		private var client_id:String = "subsonic_player";
 		private var s:Sound;
 		private var context:SoundLoaderContext;
 		private var sc:SoundChannel;
 		private var lastPosition:int = 0;
-		private var so:SharedObject = SharedObject.getLocal("subsonic_data");
 		
 		/*
 			Constructor
@@ -115,10 +113,16 @@ package org
 			var users_url:String = "http://"+this.server+"/rest/getNowPlaying.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&f=json";
 			Json.load(users_url,function(obj:Object):void {
 				var tmp:Array = new Array();
-				for(var i:int = 0, max:int = obj.data["subsonic-response"].nowPlaying.entry.length; i < max; i++){
-					tmp[i] = new Object();
-					tmp[i]["username"] = obj.data["subsonic-response"].nowPlaying.entry[i].username;
-					tmp[i]["listening"] = obj.data["subsonic-response"].nowPlaying.entry[i].artist + " - " + obj.data["subsonic-response"].nowPlaying.entry[i].title;
+				if(obj.data["subsonic-response"].nowPlaying.entry.length == undefined){
+					tmp[0] = new Object();
+					tmp[0]["username"] = obj.data["subsonic-response"].nowPlaying.entry.username;
+					tmp[0]["listening"] = obj.data["subsonic-response"].nowPlaying.entry.artist + " - " + obj.data["subsonic-response"].nowPlaying.entry.title;
+				} else {
+					for(var i:int = 0, max:int = obj.data["subsonic-response"].nowPlaying.entry.length; i < max; i++){
+						tmp[i] = new Object();
+						tmp[i]["username"] = obj.data["subsonic-response"].nowPlaying.entry[i].username;
+						tmp[i]["listening"] = obj.data["subsonic-response"].nowPlaying.entry[i].artist + " - " + obj.data["subsonic-response"].nowPlaying.entry[i].title;
+					}
 				}
 				callback(tmp);	
 			});
@@ -192,10 +196,72 @@ package org
 				callback(tmp);	
 			});
 		}
+
+		
+		/*
+		* getPlaylists method 
+		* Retrieves an array of the stored playlists
+		*
+		* @param callback Function to call after retreiving data
+		*
+		*/
+		public function getPlaylists(callback:Function):void {
+			var playlists_url:String = "http://"+this.server+"/rest/getPlaylists.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&f=json";
+			Json.load(playlists_url,function(obj:Object):void {
+				var tmp:Array = new Array();
+				if(obj.data["subsonic-response"].playlists.length == undefined){
+					tmp[0] = {
+						label: obj.data["subsonic-response"].playlists.playlist.name,
+						data:obj.data["subsonic-response"].playlists.playlist.id
+					};
+				} else {
+					for(var i:int = 0, max:int = obj.data["subsonic-response"].playlists.length; i < max; i++){
+						tmp[i] = {
+								label: obj.data["subsonic-response"].playlists.playlist[i].name,
+								data:obj.data["subsonic-response"].playlists.playlist[i].id
+								};
+					}
+				}
+				callback(tmp);
+			});
+		}
+		
+		/*
+		* getPlaylist method 
+		* Retrieves an array of the list of songs in the selected playlist
+		*
+		* @param id String of the subsonic id of the playlist
+		* @param callback Function to call after retreiving data
+		*
+		*/
+		public function getPlaylist(id:String, callback:Function):void {
+			var playlist_url:String = "http://"+this.server+"/rest/getPlaylist.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&id="+id+"&f=json";
+			Json.load(playlist_url,function(obj:Object):void {
+				var tmp:Array = new Array();
+				if(obj.data["subsonic-response"].playlist.entry.length == undefined){
+					tmp[0] = obj.data["subsonic-response"].playlist.entry;
+				} else {
+					tmp = obj.data["subsonic-response"].playlist.entry;
+				}
+				callback(tmp, obj.data["subsonic-response"].playlist.name);
+			});
+		}
+		
+		/*
+		* addSong method 
+		* Adds the selected song to playlist
+		*
+		* @param id String of the subsonic id of the song
+		*
+		*/
+		public function addSong(id:String, playlist_id:String):void {
+			var update_url:String = "http://"+this.server+"/rest/createPlaylist.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&songId="+id+"&playlistId="+playlist_id;
+			Json.load(update_url, null);
+		}
 		
 		/*
 		* playSong method 
-		* Streams de selected song id
+		* Streams the selected song id
 		*
 		* @param id String of the subsonic id of the song
 		*
@@ -254,6 +320,14 @@ package org
 				tmp.duration = (s.bytesTotal / (s.bytesLoaded / s.length));
 			}
 			return tmp;
+		}
+		
+		public function get currPlaylist():Object {
+			return so.data.currPlaylist || null; 
+		}
+		
+		public function set currPlaylist(obj:Object):void {
+			so.data.currPlaylist = obj; 
 		}
 		
 		/*

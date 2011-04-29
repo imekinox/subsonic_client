@@ -6,35 +6,20 @@
 					   preloaderChromeColor="#FFFFFF" 
 					   width.main="764" height.main="534" 
 					   height.login="162" width.login="360" 
-					   creationComplete="init()" currentStateChange.main="windowedapplication1_currentStateChangeHandler(event)" viewSourceURL="srcview/index.html">
+					   creationComplete="init()" currentStateChange.main="windowedapplication1_currentStateChangeHandler(event)" viewSourceURL="srcview/index.html" currentStateChange.playlist="windowedapplication1_currentStateChangeHandler(event)" height.playlist="534" width.playlist="764">
 	<fx:Script>
 		<![CDATA[
-			/**
-			 * subsonic desktop client
-			 *
-			 * Copyright (c) 2011 Juan Carlos del Valle (imekinox.com) <jc.ekinox@gmail.com>
-			 * This program is free software: you can redistribute it and/or modify
-			 * it under the terms of the GNU General Public License as published by
-			 * the Free Software Foundation, either version 3 of the License, or
-			 * (at your option) any later version.
-			 *
-			 * This program is distributed in the hope that it will be useful,
-			 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-			 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-			 * GNU General Public License for more details.
-			 *
-			 * @license http://www.gnu.org/licenses/gpl.html
-			 * @project subsonic.player
-			 */
-			
 			import mx.collections.*;
 			import mx.events.FlexEvent;
 			import mx.events.ListEvent;
 			import mx.events.StateChangeEvent;
 			
+			import org.playlist;
 			import org.subsonic_player;
 			
-			private var player:subsonic_player;
+			import spark.events.IndexChangeEvent;
+			
+			public var player:subsonic_player;
 			private var updater:Timer;
 			private var tick:Timer;
 			private var playing:Boolean = false;
@@ -99,6 +84,12 @@
 				//Load artists and now playing info
 				player.getUsers(users_update);
 				player.getArtists(artists_update);
+				
+				if(player.currPlaylist){
+					curr_playlist.text = player.currPlaylist.name;
+				} else {
+					curr_playlist.text = "No playlist selected";
+				}
 				
 				//Start 30sec timer to update playing info
 				updater.start();
@@ -221,14 +212,16 @@
 			*/
 			protected function songs_changeHandler(event:ListEvent):void
 			{
-				//Play selected song
-				player.playSong(event.currentTarget.dataProvider[event.rowIndex].id);
-				//enable pause actions
-				play_btn.enabled = true;
-				play_btn.label = "||";
-				playing = true;
-				//Start UI updater (this is 250ms)
-				tick.start();
+				if(event.columnIndex == 1){
+					//Play selected song
+					player.playSong(event.currentTarget.dataProvider[event.rowIndex].id);
+					//enable pause actions
+					play_btn.enabled = true;
+					play_btn.label = "||";
+					playing = true;
+					//Start UI updater (this is 250ms)
+					tick.start();
+				}
 			}
 			
 			/*
@@ -274,12 +267,45 @@
 				} 
 			}
 
+			protected function nav_btn_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = (this.currentState == "main")?"playlist":"main";
+				if(this.currentState == "playlist"){
+					player.getPlaylists(playlists_loaded);
+					if(player.currPlaylist) playlist_data.dataProvider = new ArrayCollection(player.currPlaylist.songs);
+				}
+			}
+			
+			private function playlists_loaded(arr:Array):void {
+				playlists_combo.dataProvider = new ArrayCollection(arr);
+				var index:int = -1;
+				if(player.currPlaylist) {
+					for(var i:int = 0, max:int = arr.length; i < max; i++){
+						if(arr[i].data == player.currPlaylist.id) index = i;
+					}
+				}
+				playlists_combo.selectedIndex = -1; //HACK :S
+				playlists_combo.selectedIndex = index;
+			}
+
+			protected function playlists_combo_changeHandler(event:IndexChangeEvent):void
+			{
+				player.currPlaylist = new playlist(player);
+				player.currPlaylist.createFromId(event.currentTarget.dataProvider[event.newIndex].data, playlist_loaded);
+				curr_playlist.text = event.currentTarget.dataProvider[event.newIndex].label;
+			}
+			
+			private function playlist_loaded(arr:Array):void {
+				playlist_data.dataProvider = new ArrayCollection(arr);
+			}
+
 		]]>
 	</fx:Script>
 
 	<s:states>
 		<s:State name="login"/>
 		<s:State name="main"/>
+		<s:State name="playlist"/>
 	</s:states>
 	<fx:Declarations>
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
@@ -287,6 +313,9 @@
 	<s:layout.main>
 		<s:BasicLayout/>
 	</s:layout.main>
+	<s:layout.playlist>
+		<s:BasicLayout/>
+	</s:layout.playlist>
 	<s:Label x="12" y="15" text="Username:" color="#000000" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="10" id="username" width="250" enabled="true" textAlign="left" includeIn="login"/>
 	<s:Label x="12" y="47" text="Password:" color="#000000" textAlign="right" width="70" includeIn="login"/>
@@ -294,27 +323,47 @@
 	<s:Label x="12" y="78" text="Server:" color="#000000" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="72" id="server" width="250" enabled="true" textAlign="left" displayAsPassword="false" includeIn="login"/>
 	<s:Button x="145" y="102" label="Log in" id="login_btn" enabled="true" click="login_btn_clickHandler(event)" includeIn="login"/>
-	<s:Label includeIn="main" x="10" y="10" text="Welcome" width="147" color="#000000" id="welcome_lbl"/>
-	<mx:DataGrid includeIn="main" y="30" height="103" id="userlist" left="8" width="385">
+	<s:Label includeIn="main,playlist" x="10" y="6" text="Welcome" width="147" color="#000000" id="welcome_lbl"/>
+	<mx:DataGrid includeIn="main" y="42" height="103" id="userlist" left="8" width="385">
 		<mx:columns>
 			<mx:DataGridColumn headerText="Username" dataField="username" width="100"/>
 			<mx:DataGridColumn headerText="Listening" dataField="listening"/>
 		</mx:columns>
 	</mx:DataGrid>
-	<mx:Tree includeIn="main" id="artists" labelFunction="treeLabel" change="artists_changeHandler(event)" bottom="44" width="380" x="10" top="141"></mx:Tree>
-	<mx:DataGrid includeIn="main" y="30" id="albums" height="207" change="albums_changeHandler(event)" left="398" right="10">
+	<mx:Tree includeIn="main" id="artists" labelFunction="treeLabel" change="artists_changeHandler(event)" bottom="10" width="384" x="8" top="153"></mx:Tree>
+	<mx:DataGrid includeIn="main" y="42" id="albums" height="207" change="albums_changeHandler(event)" left="398" right="10" verticalAlign="middle">
 		<mx:columns>
 			<mx:DataGridColumn headerText="id" visible="false" dataField="id"/>
-			<mx:DataGridColumn headerText="Albums" dataField="album"/>
+			<mx:DataGridColumn itemRenderer="album_actions" resizable="false" sortable="false" width="72"/>
+			<mx:DataGridColumn headerText="Albums" dataField="album" resizable="true"/>
 		</mx:columns>
 	</mx:DataGrid>
-	<mx:DataGrid id="songs" includeIn="main" change="songs_changeHandler(event)" left="398" right="10" bottom="44" top="245">
+	<mx:DataGrid id="songs" includeIn="main" change="songs_changeHandler(event)" left="398" right="10" bottom="10" top="257" verticalAlign="middle">
 		<mx:columns>
 			<mx:DataGridColumn dataField="id" headerText="id" visible="false"/>
+			<mx:DataGridColumn itemRenderer="song_actions" width="38" sortable="false"/>
 			<mx:DataGridColumn headerText="Songs" dataField="song"/>
 		</mx:columns>
 	</mx:DataGrid>
-	<mx:ProgressBar includeIn="main" y="10" height="12" labelPlacement="bottom" label=" " id="playback" maximum="1" minimum="0" indeterminate="false" enabled="true" mode="manual" left="434" right="93"/>
-	<s:Button includeIn="main" x="398" y="4" label="&gt;" width="28" id="play_btn" click="play_btn_clickHandler(event)"/>
-	<s:Label includeIn="main" y="10" text="00:00 / 00:00" right="14" id="time"/>
+	<mx:ProgressBar includeIn="main,playlist" y="12" height="12" labelPlacement="bottom" label=" " id="playback" maximum="1" minimum="0" indeterminate="false" enabled="true" mode="manual" left="470" right="93"/>
+	<s:Button includeIn="main,playlist" x="434" y="6" label="&gt;" width="28" id="play_btn" click="play_btn_clickHandler(event)"/>
+	<s:Button label="p" width="28" id="nav_btn" x="399" y="6" includeIn="main,playlist" label.playlist="m" fontSize.playlist="10" width.playlist="29" x.playlist="398" fontSize.main="10" click="nav_btn_clickHandler(event)"/>
+	<s:Label includeIn="main,playlist" y="12" text="00:00 / 00:00" right="14" id="time"/>
+	<s:Button includeIn="playlist" y="45" label="Add playlist" left="146"/>
+	<s:TextInput includeIn="playlist" y="45" left="10"/>
+	<s:DropDownList includeIn="playlist" y="45" right="89" id="playlists_combo" change="playlists_combo_changeHandler(event)"></s:DropDownList>
+	<s:Button includeIn="playlist" y="45" label="Save" right="11"/>
+	<s:Label includeIn="playlist" y="51" text="Playlists:" right="205"/>
+	<mx:HRule includeIn="main,playlist" x="10" y="35" width="744"/>
+	<mx:DataGrid includeIn="playlist" id="playlist_data" left="10" right="10" bottom="10" top="74">
+		<mx:columns>
+			<mx:DataGridColumn headerText="id" dataField="id" visible="false"/>
+			<mx:DataGridColumn headerText="Artist" dataField="artist" width="150"/>
+			<mx:DataGridColumn headerText="Album" dataField="album" width="150"/>
+			<mx:DataGridColumn dataField="title" headerText="Title" resizable="true"/>
+			<mx:DataGridColumn dataField="year" headerText="Year" width="80" resizable="false"/>
+			<mx:DataGridColumn dataField="genere" headerText="Genere" width="80" resizable="false"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<s:Label includeIn="main,playlist" x="10" y="22" text="Curr Playlist" fontSize="11"  id="curr_playlist"/>
 </s:WindowedApplication>

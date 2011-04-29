@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:MXDataGridItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						  xmlns:s="library://ns.adobe.com/flex/spark" 
+						  xmlns:mx="library://ns.adobe.com/flex/mx" 
+						  focusEnabled="true" width="38" height="25">
+
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			
+			import org.subsonic_player;
+			protected function add_clickHandler(event:MouseEvent):void
+			{
+				var data:ArrayCollection = this.parentApplication.songs.dataProvider;
+				var player:subsonic_player = this.parentApplication.player;
+				trace(data[this.itemIndex].id);
+			}
+		]]>
+	</fx:Script>
+
+	<s:Button x="3" y="2" label="+" width="32" id="add" click="add_clickHandler(event)"/>
+</s:MXDataGridItemRenderer>

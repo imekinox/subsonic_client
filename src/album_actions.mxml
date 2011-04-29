@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:MXDataGridItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						  xmlns:s="library://ns.adobe.com/flex/spark" 
+						  xmlns:mx="library://ns.adobe.com/flex/mx" 
+						  focusEnabled="true" height="26" width="72">
+
+	<fx:Script>
+		<![CDATA[
+			protected function add_clickHandler(event:MouseEvent):void
+			{
+				trace(this.itemIndex);
+			}
+
+			protected function play_clickHandler(event:MouseEvent):void
+			{
+				trace(this.itemIndex);
+			}
+
+		]]>
+	</fx:Script>
+
+	<s:Button x="3" y="2" label="+" width="32" id="add" click="add_clickHandler(event)"/>
+	<s:Button x="37" y="2" label="&gt;" width="32" id="play" click="play_clickHandler(event)"/>
+</s:MXDataGridItemRenderer>
