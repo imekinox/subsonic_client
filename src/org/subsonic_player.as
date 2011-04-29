@@ -268,9 +268,10 @@ package org
 		* @param id String of the subsonic id of the song
 		*
 		*/
-		public function addSong(id:String, playlist_id:String):void {
-			var update_url:String = "http://"+this.server+"/rest/createPlaylist.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&songId="+id+"&playlistId="+playlist_id;
-			Json.load(update_url, null);
+		public function addSong(songs:Array, playlist_id:String):void {
+			var id:String = songs.join("&songId=");
+			var update_url:String = "http://"+this.server+"/rest/createPlaylist.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&songId="+id+"&playlistId="+playlist_id+"&f=json";
+			Json.load(update_url, function(obj:Object):void {});
 		}
 		
 		/*
@@ -296,6 +297,13 @@ package org
 			dispatchEvent(new subsonicEvent(subsonicEvent.CHANGED, {id:id}));
 		}
 
+		/*
+		* playFrom method 
+		* Streams the selected song id from the playlist
+		*
+		* @param id String of the subsonic id of the song
+		*
+		*/
 		public function playFrom(id:String):void {
 			for(var i:int, max:int = currPlaylist.songs.length; i < max; i++){
 				if(currPlaylist.songs[i].id == id) currPlaying = i;
@@ -303,6 +311,13 @@ package org
 			playSong(id);
 		}
 		
+		/*
+		* song_ended callback 
+		* Song has finished playing, play next from the playlist
+		*
+		* @param e Event Object
+		*
+		*/
 		public function song_ended(e:Event):void {
 			currPlaying++;
 			if(currPlaying < currPlaylist.songs.length){

@@ -38,7 +38,11 @@ package org
 					player.currPlaylist = this;
 					break;
 				case "remote":
-					player.addSong(song.id, this.id);
+					var tmp:Array = new Array();
+					for(var i:int = 0, max:int = songs.length; i < max; i++){
+						tmp.push(songs[i].id);
+					}
+					player.addSong(tmp, this.id);
 					break;
 			}
 		}

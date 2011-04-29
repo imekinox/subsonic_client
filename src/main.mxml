@@ -10,6 +10,7 @@
 	<fx:Script>
 		<![CDATA[
 			import mx.collections.*;
+			import mx.events.DataGridEvent;
 			import mx.events.FlexEvent;
 			import mx.events.ListEvent;
 			import mx.events.StateChangeEvent;
@@ -274,7 +275,9 @@
 				this.currentState = (this.currentState == "main")?"playlist":"main";
 				if(this.currentState == "playlist"){
 					player.getPlaylists(playlists_loaded);
-					if(player.currPlaylist) playlist_data.dataProvider = new ArrayCollection(player.currPlaylist.songs);
+					if(player.currPlaylist) {
+						player.currPlaylist.createFromId(player.currPlaylist.id, playlist_loaded);
+					}
 					if(player.playing) song_changed({data:{id:player.playing}});
 				}
 			}
@@ -284,7 +287,7 @@
 					for(var i:int = 0, max:int = playlist_data.dataProvider.length; i < max; i++){
 						if(playlist_data.dataProvider[i].id == obj.data.id) playlist_data.selectedIndex = i;
 					}
-				}				
+				}
 			}
 			
 			private function playlists_loaded(arr:Array):void {
@@ -321,6 +324,15 @@
 				playing = true;
 				//Start UI updater (this is 250ms)
 				tick.start();
+			}
+
+
+			protected function playlist_data_updateCompleteHandler(event:FlexEvent):void
+			{
+				if(event.currentTarget.dataProvider){
+					for(var i:int = 0, max:int = event.currentTarget.dataProvider.length; i < max; i++)
+						player.currPlaylist.songs[i] = event.currentTarget.dataProvider[i];
+				}
 			}
 
 		]]>
@@ -379,7 +391,7 @@
 	<s:Button includeIn="playlist" y="45" label="Save" right="11"/>
 	<s:Label includeIn="playlist" y="51" text="Playlists:" right="205"/>
 	<mx:HRule includeIn="main,playlist" x="10" y="35" width="744"/>
-	<mx:DataGrid includeIn="playlist" id="playlist_data" left="10" right="10" bottom="10" top="74" change="playlist_data_changeHandler(event)">
+	<mx:DataGrid includeIn="playlist" id="playlist_data" left="10" right="10" bottom="10" top="74" change="playlist_data_changeHandler(event)" updateComplete="playlist_data_updateCompleteHandler(event)">
 		<mx:columns>
 			<mx:DataGridColumn headerText="id" dataField="id" visible="false"/>
 			<mx:DataGridColumn headerText="Artist" dataField="artist" width="150"/>
