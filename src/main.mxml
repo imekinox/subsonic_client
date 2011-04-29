@@ -270,10 +270,18 @@
 				} 
 			}
 
+			/*
+			* nav_btn_clickHandler handler 
+			* Called when switching from playlist to main view
+			*
+			* @param event MouseEvent Object 
+			*/
 			protected function nav_btn_clickHandler(event:MouseEvent):void
 			{
+				//switch state betwwn playlist and main
 				this.currentState = (this.currentState == "main")?"playlist":"main";
 				if(this.currentState == "playlist"){
+					//Update UI and load playlist data
 					player.getPlaylists(playlists_loaded);
 					if(player.currPlaylist) {
 						player.currPlaylist.createFromId(player.currPlaylist.id, playlist_loaded);
@@ -282,26 +290,47 @@
 				}
 			}
 			
+			/*
+			* song_changed callback 
+			* Called when a song playback has changed
+			*
+			* @param obj Song Object 
+			*/
 			private function song_changed(obj:Object):void {
 				if(playlist_data){
+					//select current playing song if in the list
 					for(var i:int = 0, max:int = playlist_data.dataProvider.length; i < max; i++){
 						if(playlist_data.dataProvider[i].id == obj.data.id) playlist_data.selectedIndex = i;
 					}
 				}
 			}
 			
+			/*
+			* playlists_loaded callback 
+			* Called when the playlists array is loaded
+			*
+			* @param arr Array of playlists name and id 
+			*/
 			private function playlists_loaded(arr:Array):void {
 				playlists_combo.dataProvider = new ArrayCollection(arr);
+				//look for current/stored playlists
 				var index:int = -1;
 				if(player.currPlaylist) {
 					for(var i:int = 0, max:int = arr.length; i < max; i++){
 						if(arr[i].data == player.currPlaylist.id) index = i;
 					}
 				}
+				//update combo box selected playlist
 				playlists_combo.selectedIndex = -1; //HACK :S
 				playlists_combo.selectedIndex = index;
 			}
 
+			/*
+			* playlists_combo_changeHandler handler 
+			* Called when the user selects a paylist from the combo
+			*
+			* @param event AndexChangeEvent Object
+			*/
 			protected function playlists_combo_changeHandler(event:IndexChangeEvent):void
 			{
 				player.currPlaylist = new playlist(player);
@@ -309,11 +338,24 @@
 				curr_playlist.text = event.currentTarget.dataProvider[event.newIndex].label;
 			}
 			
+			/*
+			* playlist_loaded callback 
+			* Called when the playlist has loaded
+			*
+			* @param arr Array of songs on that playlist
+			*/
 			private function playlist_loaded(arr:Array):void {
 				playlist_data.dataProvider = new ArrayCollection(arr);
+				//select playing song if in the playlist
+				song_changed({data:{id:player.playing}});
 			}
 
-
+			/*
+			* playlist_data_changeHandler handler 
+			* Called the user selects a song from the playlist
+			*
+			* @param event ListEvent Object
+			*/
 			protected function playlist_data_changeHandler(event:ListEvent):void
 			{
 				//Play selected song
@@ -326,9 +368,15 @@
 				tick.start();
 			}
 
-
+			/*
+			* playlist_data_updateCompleteHandler handler 
+			* Called when the user updates the order of the playlist
+			*
+			* @param event FlexEvent Object
+			*/
 			protected function playlist_data_updateCompleteHandler(event:FlexEvent):void
 			{
+				//if there is data in the data provider update the currPlaylists song array (order)
 				if(event.currentTarget.dataProvider){
 					for(var i:int = 0, max:int = event.currentTarget.dataProvider.length; i < max; i++)
 						player.currPlaylist.songs[i] = event.currentTarget.dataProvider[i];

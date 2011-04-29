@@ -368,10 +368,24 @@ package org
 			return tmp;
 		}
 		
+		/*
+		* currPlaylist getter 
+		* Returns the current playlist object
+		*
+		* @retunrs playlist object
+		*
+		*/
 		public function get currPlaylist():playlist {
 			return current_playlist; 
 		}
 		
+		/*
+		* status setter 
+		* set the current_playlist object and stores the current id in the shared object
+		*
+		* @param obj playlist
+		*
+		*/
 		public function set currPlaylist(obj:playlist):void {
 			so.data.currPlaylist = obj.id;
 			current_playlist = obj;
