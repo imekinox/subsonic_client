@@ -79,19 +79,37 @@ package org
 		public function addSong(song:Object):void {
 			//this object comes from the data grid
 			songs.push({id:song.id, name:song.song});
-			switch(this.type){
-				case "local":
-					player.currPlaylist = this;
-					break;
-				case "remote":
-					//update server's playlist
-					var tmp:Array = new Array();
-					for(var i:int = 0, max:int = songs.length; i < max; i++){
-						tmp.push(songs[i].id);
-					}
-					player.addSong(tmp, this.id);
-					break;
+			if(this.type == "remote") updatePlaylist();
+		}
+		
+		/*
+		* addAlbum method 
+		* Adds an album to the remote or local playlist
+		*
+		* @param album_id String 
+		*/
+		public function addAlbum(album_id:String):void {
+			trace(album_id);
+			player.getSongs(album_id, function(arr:Array):void {
+				trace(arr.length);
+				for(var i:int = 0, max:int = arr.length; i < max; i++){
+					songs.push({id:arr[i].id, name:arr[i].title});	
+				}
+				if(type == "remote") updatePlaylist();
+			});
+		}
+		
+		/*
+		* updatePlaylist method 
+		* Updates remote playlist with new array;
+		*/
+		private function updatePlaylist():void {
+			//update server's playlist
+			var tmp:Array = new Array();
+			for(var i:int = 0, max:int = songs.length; i < max; i++){
+				tmp.push(songs[i].id);
 			}
+			player.addSong(tmp, this.id);
 		}
 		
 		/*

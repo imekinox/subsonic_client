@@ -6,9 +6,16 @@
 
 	<fx:Script>
 		<![CDATA[
+			import mx.collections.ArrayCollection;
+			
+			import org.playlist;
+			import org.subsonic_player;
+			
 			protected function add_clickHandler(event:MouseEvent):void
 			{
-				trace(this.itemIndex);
+				var data:ArrayCollection = this.parentApplication.albums.dataProvider;
+				var player:subsonic_player = this.parentApplication.player;
+				player.currPlaylist.addAlbum(data[this.itemIndex].id);
 			}
 
 			protected function play_clickHandler(event:MouseEvent):void

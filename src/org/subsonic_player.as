@@ -250,12 +250,17 @@ package org
 		*/
 		public function getPlaylist(id:String, callback:Function):void {
 			var playlist_url:String = "http://"+this.server+"/rest/getPlaylist.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&id="+id+"&f=json";
+			trace(playlist_url);
 			Json.load(playlist_url,function(obj:Object):void {
 				var tmp:Array = new Array();
-				if(obj.data["subsonic-response"].playlist.entry.length == undefined){
-					tmp[0] = obj.data["subsonic-response"].playlist.entry;
-				} else {
-					tmp = obj.data["subsonic-response"].playlist.entry;
+				try{
+					if(obj.data["subsonic-response"].playlist.entry.length == undefined){
+						tmp[0] = obj.data["subsonic-response"].playlist.entry;
+					} else {
+						tmp = obj.data["subsonic-response"].playlist.entry;
+					}	
+				} catch(err:Error) {
+					
 				}
 				callback(tmp, obj.data["subsonic-response"].playlist.name);
 			});
