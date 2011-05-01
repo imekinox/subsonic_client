@@ -200,11 +200,13 @@ package org
 					tmp[0] = new Object();
 					tmp[0]["id"] = obj.data["subsonic-response"].directory.child.id;
 					tmp[0]["song"] = obj.data["subsonic-response"].directory.child.title;
+					tmp[0]["video"] = obj.data["subsonic-response"].directory.child.isVideo;
 				} else {
 					for(var i:int = 0, max:int = obj.data["subsonic-response"].directory.child.length; i < max; i++){
 						tmp[i] = new Object();
 						tmp[i]["id"] = obj.data["subsonic-response"].directory.child[i].id;
 						tmp[i]["song"] = obj.data["subsonic-response"].directory.child[i].title;
+						tmp[i]["video"] = obj.data["subsonic-response"].directory.child[i].isVideo;
 					}
 				}
 				callback(tmp);	
@@ -250,7 +252,6 @@ package org
 		*/
 		public function getPlaylist(id:String, callback:Function):void {
 			var playlist_url:String = "http://"+this.server+"/rest/getPlaylist.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&id="+id+"&f=json";
-			trace(playlist_url);
 			Json.load(playlist_url,function(obj:Object):void {
 				var tmp:Array = new Array();
 				try{
@@ -288,6 +289,7 @@ package org
 		*/
 		public function playSong(id:String):void {
 			var song_url:String = "http://"+this.server+"/rest/stream.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&id="+id;
+			trace(song_url);
 			if(s && s.bytesLoaded != s.bytesTotal) {
 				s.close();
 			}
@@ -302,6 +304,21 @@ package org
 			dispatchEvent(new subsonicEvent(subsonicEvent.CHANGED, {id:id}));
 		}
 
+		/*
+		* getVideoURL method 
+		* Returns the stream url for the selected video
+		*
+		* @param id String of the subsonic id of the song
+		* 
+		* @return video_url String
+		*
+		*/
+		public function getVideoURL(id:String):String {
+			var video_url:String = "http://"+this.server+"/rest/stream.view?u="+this.username+"&p="+this.password+"&v=1.5.0&c="+this.client_id+"&id="+id+"&maxBitRate=1000";
+			dispatchEvent(new subsonicEvent(subsonicEvent.CHANGED, {id:id}));
+			return video_url;
+		}
+		
 		/*
 		* playFrom method 
 		* Streams the selected song id from the playlist
