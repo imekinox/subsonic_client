@@ -1,0 +1,22 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+.playlistHeader
+{
+	fontSize: 11;
+	color: #666666;
+	font-style: italic;
+}
+.welcome
+{
+	color: #000000;
+	font-weight:bold;
+}
+
+.navBtn
+{
+	fontSize: 10;
+	left: 398;
+	top: 6;
+}

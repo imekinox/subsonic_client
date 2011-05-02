@@ -7,6 +7,25 @@
 					   width.main="764" height.main="534" 
 					   height.login="162" width.login="360" 
 					   creationComplete="init()" currentStateChange.main="windowedapplication1_currentStateChangeHandler(event)" viewSourceURL="srcview/index.html" currentStateChange.playlist="windowedapplication1_currentStateChangeHandler(event)" height.playlist="534" width.playlist="764">
+	<s:transitions>
+		<s:Transition id="playlistTransition"
+					  fromState="main"
+					  toState="playlist">
+			<s:Fade alphaFrom="0"
+					alphaTo="1"
+					duration="250"
+					target="{playlist_data}"/>
+		</s:Transition>
+		<s:Transition id="mainTransition"
+					  fromState="playlist"
+					  toState="main">
+			<s:Fade alphaFrom="0"
+					alphaTo="1"
+					duration="250"
+					target="{mainGroup}"/>
+		</s:Transition>
+	</s:transitions>
+	<fx:Style source="src/org/styles/style.css" />
 	<fx:Script>
 		<![CDATA[
 			import mx.collections.*;
@@ -16,6 +35,8 @@
 			import mx.events.StateChangeEvent;
 			
 			import org.events.subsonicEvent;
+			import org.osmf.events.MediaPlayerStateChangeEvent;
+			import org.osmf.events.TimeEvent;
 			import org.playlist;
 			import org.subsonic_player;
 			
@@ -25,6 +46,7 @@
 			private var updater:Timer;
 			private var tick:Timer;
 			private var playing:Boolean = false;
+			private var isVideo:Boolean = false;
 			/*
 				Constructor
 			*/
@@ -220,18 +242,24 @@
 					trace(event.currentTarget.dataProvider[event.rowIndex].video);
 					if(event.currentTarget.dataProvider[event.rowIndex].video){
 						var video_url:String = player.getVideoURL(event.currentTarget.dataProvider[event.rowIndex].id);
-						trace(videoPlayer);
 						videoPlayer.visible = true;
 						videoPlayer.source = video_url;
+						play_btn.enabled = true;
+						play_btn.label = "x";
+						playing = true;
+						isVideo = true;
+						player.pause();
+						tick.stop();
 					} else {
 						player.playSong(event.currentTarget.dataProvider[event.rowIndex].id);
+						//enable pause actions
+						play_btn.enabled = true;
+						play_btn.label = "||";
+						playing = true;
+						//Start UI updater (this is 250ms)
+						isVideo = false;
+						tick.start();
 					}
-					//enable pause actions
-					play_btn.enabled = true;
-					play_btn.label = "||";
-					playing = true;
-					//Start UI updater (this is 250ms)
-					tick.start();
 				}
 			}
 			
@@ -266,8 +294,15 @@
 			protected function play_btn_clickHandler(event:MouseEvent):void
 			{
 				if(playing) {
-					//Pause stream
-					player.pause();	
+					if(isVideo){
+						videoPlayer.stop();
+						videoPlayer.source = "";
+						videoPlayer.visible = false;
+						isVideo = false;
+					} else {
+						//Pause stream
+						player.pause();	
+					}
 					play_btn.label = ">";
 					playing = false;
 				} else {
@@ -391,6 +426,25 @@
 				}
 			}
 
+
+			protected function videoPlayer_mediaPlayerStateChangeHandler(event:MediaPlayerStateChangeEvent):void
+			{
+				trace(event.state);
+				//var video_url:String = player.getVideoURL(event.currentTarget.dataProvider[event.rowIndex].id);
+				//videoPlayer.visible = true;
+				//videoPlayer.source = video_url;
+			}
+
+
+			protected function videoPlayer_completeHandler(event:TimeEvent):void
+			{
+				//var video_url:String = player.getVideoURL(event.currentTarget.dataProvider[event.rowIndex].id);
+				videoPlayer.stop();
+				videoPlayer.source = "";
+				videoPlayer.visible = false;
+				isVideo = false;
+			}
+
 		]]>
 	</fx:Script>
 
@@ -415,32 +469,10 @@
 	<s:Label x="12" y="78" text="Server:" color="#000000" textAlign="right" width="70" includeIn="login"/>
 	<s:TextInput x="92" y="72" id="server" width="250" enabled="true" textAlign="left" displayAsPassword="false" includeIn="login"/>
 	<s:Button x="145" y="102" label="Log in" id="login_btn" enabled="true" click="login_btn_clickHandler(event)" includeIn="login"/>
-	<s:Label includeIn="main,playlist" x="10" y="6" text="Welcome" width="147" color="#000000" id="welcome_lbl"/>
-	<mx:DataGrid includeIn="main" y="42" height="103" id="userlist" width="383" left="10">
-		<mx:columns>
-			<mx:DataGridColumn headerText="Username" dataField="username" width="100"/>
-			<mx:DataGridColumn headerText="Listening" dataField="listening"/>
-		</mx:columns>
-	</mx:DataGrid>
-	<mx:Tree includeIn="main" id="artists" labelFunction="treeLabel" change="artists_changeHandler(event)" bottom="10" width="381" x="10" top="153"></mx:Tree>
-	<mx:DataGrid includeIn="main" y="42" id="albums" height="207" change="albums_changeHandler(event)" left="398" right="10" verticalAlign="middle">
-		<mx:columns>
-			<mx:DataGridColumn headerText="id" visible="false" dataField="id"/>
-			<mx:DataGridColumn itemRenderer="album_actions" resizable="false" sortable="false" width="38"/>
-			<mx:DataGridColumn headerText="Albums" dataField="album" resizable="true"/>
-		</mx:columns>
-	</mx:DataGrid>
-	<mx:DataGrid id="songs" includeIn="main" change="songs_changeHandler(event)" left="398" right="10" bottom="10" top="257" verticalAlign="middle">
-		<mx:columns>
-			<mx:DataGridColumn dataField="id" headerText="id" visible="false"/>
-			<mx:DataGridColumn itemRenderer="song_actions" width="38" sortable="false"/>
-			<mx:DataGridColumn dataField="video" width="38"/>
-			<mx:DataGridColumn headerText="Songs" dataField="song"/>
-		</mx:columns>
-	</mx:DataGrid>
+	<s:Label includeIn="main,playlist" x="10" y="6" text="Welcome" width="147" id="welcome_lbl" color.playlist="#000000" styleName="welcome"/>
 	<mx:ProgressBar includeIn="main,playlist" y="12" height="12" labelPlacement="bottom" label=" " id="playback" maximum="1" minimum="0" indeterminate="false" enabled="true" mode="manual" left="470" right="93"/>
 	<s:Button includeIn="main,playlist" x="434" y="6" label="&gt;" width="28" id="play_btn" click="play_btn_clickHandler(event)"/>
-	<s:Button label="p" width="28" id="nav_btn" x="399" y="6" includeIn="main,playlist" label.playlist="m" fontSize.playlist="10" width.playlist="29" x.playlist="398" fontSize.main="10" click="nav_btn_clickHandler(event)"/>
+	<s:Button label="p" id="nav_btn" width="29" includeIn="main,playlist" label.playlist="m" click="nav_btn_clickHandler(event)" styleName="navBtn"/>
 	<s:Label includeIn="main,playlist" y="12" text="00:00 / 00:00" right="14" id="time"/>
 	<s:Button includeIn="playlist" y="45" label="Add playlist" left="146"/>
 	<s:TextInput includeIn="playlist" y="45" left="10"/>
@@ -458,6 +490,30 @@
 			<mx:DataGridColumn dataField="genere" headerText="Genere" width="80" resizable="false"/>
 		</mx:columns>
 	</mx:DataGrid>
-	<s:Label includeIn="main,playlist" x="10" y="22" text="Curr Playlist" fontSize="11"  id="curr_playlist"/>
-	<s:VideoPlayer includeIn="main" id="videoPlayer" visible="false" bottom="10" top="41" left="10" right="11"/>
+	<s:Label includeIn="main,playlist" x="10" y="22" text="Curr Playlist" id="curr_playlist" styleName="playlistHeader"/>
+	<s:Group includeIn="main" id="mainGroup" left="10" top="45" bottom="10" right="10">
+		<mx:DataGrid y="0" height="103" id="userlist" width="383" left="0">
+			<mx:columns>
+				<mx:DataGridColumn headerText="Username" dataField="username" width="100"/>
+				<mx:DataGridColumn headerText="Listening" dataField="listening"/>
+			</mx:columns>
+		</mx:DataGrid>
+		<mx:Tree id="artists" labelFunction="treeLabel" change="artists_changeHandler(event)" bottom="0" width="383" top="110" left="0"></mx:Tree>
+		<mx:DataGrid y="0" id="albums" height="207" change="albums_changeHandler(event)" left="390" right="0" verticalAlign="middle">
+			<mx:columns>
+				<mx:DataGridColumn headerText="id" visible="false" dataField="id"/>
+				<mx:DataGridColumn itemRenderer="album_actions" resizable="false" sortable="false" width="38"/>
+				<mx:DataGridColumn headerText="Albums" dataField="album" resizable="true"/>
+			</mx:columns>
+		</mx:DataGrid>
+		<mx:DataGrid id="songs" change="songs_changeHandler(event)" left="390" right="0" bottom="0" top="213" verticalAlign="middle">
+			<mx:columns>
+				<mx:DataGridColumn dataField="id" headerText="id" visible="false"/>
+				<mx:DataGridColumn itemRenderer="song_actions" width="38" sortable="false"/>
+				<mx:DataGridColumn dataField="video" width="38" visible="false"/>
+				<mx:DataGridColumn headerText="Songs" dataField="song"/>
+			</mx:columns>
+		</mx:DataGrid>
+		<s:VideoPlayer includeIn="main" id="videoPlayer" visible="false" bottom="0" top="0" left="0" right="0" mediaPlayerStateChange="videoPlayer_mediaPlayerStateChangeHandler(event)" complete="videoPlayer_completeHandler(event)"/>
+	</s:Group>
 </s:WindowedApplication>
